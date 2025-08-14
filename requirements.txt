@@ -1,0 +1,8 @@
+ipykernel
+numpy
+plotly==5.15.0
+scipy
+nbformat>=4.2.0
+pandas
+h5py
+kaleido
