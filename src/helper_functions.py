@@ -54,7 +54,7 @@ def compute_stable_timestep(model, mesh, contact_penalty):
     coords      : (n_nodes×2) array of nodal coordinates
     k_penalty   : penalty coefficient [N/m^3]
     """
-    facet_conn = mesh.getConnectivities()(aka._segment_2)
+    facet_conn = mesh.getConnectivities()(aka._tetrahedron_4)
     coords = mesh.getNodes()
 
     # --- assemble bulk K, lump M ---
@@ -180,7 +180,7 @@ def getStableTimestepCohesive(model, stable_damage=0.1):
 
     # Compute the maximum stable cohesive stiffness for a defined damage
     G_c = model.getMaterial(1).getReal("G_c")
-    sigma_c = np.max(model.getMaterial(1).getInternalReal("sigma_c")(aka._segment_2))
+    sigma_c = np.max(model.getMaterial(1).getInternalReal("sigma_c")(aka._triangle_3))
     k_coh_max = sigma_c**2 / (2 * G_c * stable_damage) * (1 - stable_damage)
 
     print("Maximum Cohesive Stiffness: {:.2e}".format(k_coh_max), "N/m")
@@ -323,7 +323,7 @@ def computeEnergy(model, cumulative_work, previous_work):
 
 def saveCS(model, material_file, mesh_file, inpath):
     try:
-        sigma_c_quads = model.getMaterial(1).getInternalReal("sigma_c")(aka._segment_2)
+        sigma_c_quads = model.getMaterial(1).getInternalReal("sigma_c")(aka._triangle_3)
     except:
         try:
             sigma_c_quads = model.getMaterial(1).getInternalReal("sigma_c")(
@@ -349,7 +349,7 @@ def saveCS(model, material_file, mesh_file, inpath):
 
 def loadCS(model, material_file, mesh_file, inpath):
     try:
-        sigma_c_quads = model.getMaterial(1).getInternalReal("sigma_c")(aka._segment_2)
+        sigma_c_quads = model.getMaterial(1).getInternalReal("sigma_c")(aka._triangle_3)
     except:
         try:
             sigma_c_quads = model.getMaterial(1).getInternalReal("sigma_c")(
@@ -565,6 +565,16 @@ def initRadialVelocityField(mesh, model, strain_rate):
     return vel_max
 
 
+def initRadialVelocityField3D(mesh, model, eps_v_dot, center=[0, 0, 0]):
+    alpha = eps_v_dot / 3.0
+    vel = model.getVelocity()
+    nodes = mesh.getNodes()
+    for v, x in zip(vel, nodes):
+        xr = [x[0] - center[0], x[1] - center[1], x[2] - center[2]]
+        v[0], v[1], v[2] = alpha * xr[0], alpha * xr[1], alpha * xr[2]
+    return alpha
+
+
 def computeExternalWorkAKA(model, cumulative_work, previous_work, apply_bc):
 
     if apply_bc:
@@ -647,7 +657,7 @@ def applyRadialDisplacement(
     if static:
         young_modulus = model.getMaterial(0).getReal("E")
         critical_stress = np.min(
-            model.getMaterial(1).getInternalReal("sigma_c")(aka._segment_2)
+            model.getMaterial(1).getInternalReal("sigma_c")(aka._triangle_3)
         )
 
         poisson_ratio = model.getMaterial(0).getReal("nu")

@@ -3,7 +3,7 @@ import numpy as np
 import os
 from helper_functions import *
 
-TIME = 2e-6
+TIME = 1e-5
 
 
 def runSimulation(material_file, mesh_file, paths, args, free_edges=False):
@@ -12,7 +12,7 @@ def runSimulation(material_file, mesh_file, paths, args, free_edges=False):
     aka.parseInput(material_file)
 
     # Create the mesh object and read the mesh file
-    spatial_dimension = 2
+    spatial_dimension = 3
     mesh = aka.Mesh(spatial_dimension)
     mesh.read(mesh_file)
 
@@ -34,24 +34,27 @@ def runSimulation(material_file, mesh_file, paths, args, free_edges=False):
     ## STATIC SOLVE ##
 
     # Apply the boundary conditions
-    static_displacement = applyRadialDisplacement(mesh, model, 0, 0, TIME, static=True)
-
-    # Solve the static step
-    model.solveStep("static")
-    model.dump()
-    removeRadialDisplacement(mesh, model)
+    # static_displacement = applyRadialDisplacement(mesh, model, 0, 0, TIME, static=True)
+    static_displacement = 0
+    #
+    ## Solve the static step
+    # model.solveStep("static")
+    # model.dump()
+    # removeRadialDisplacement(mesh, model)
 
     ## DYNAMIC SOLVE ##
     # Set the contact penalty
     # compute and assign contact penalty (uses its own safety_factor=10.0)
-    penalty = compute_contact_penalty(model, mesh, safety_factor=10.0, use_min_h=False)
+    # penalty = compute_contact_penalty(model, mesh, safety_factor=10.0, use_min_h=False)
+    penalty = 1
     # model.getMaterial(1).setReal("penalty", penalty)
 
     # Initialize the interpolation functions to compute the cohesive stress at facet level
     model.updateAutomaticInsertion()
 
     # Set the time step and compute the number of steps
-    dt_crit, dt_crit_bulk = compute_stable_timestep(model, mesh, penalty)
+    # dt_crit, dt_crit_bulk = compute_stable_timestep(model, mesh, penalty)
+    dt_crit = model.getStableTimeStep()
     time_step = dt_crit * args.safety_factor
     model.setTimeStep(time_step)
     n_steps = int(TIME / time_step)
@@ -60,7 +63,7 @@ def runSimulation(material_file, mesh_file, paths, args, free_edges=False):
     )
 
     # Initialize the velocity field
-    v = initRadialVelocityField(mesh, model, args.strain_rate)
+    v = initRadialVelocityField3D(mesh, model, args.strain_rate)
 
     # Get the stable damage and stable stiffness to check the stability of the simulation
     # initUnstableZoneDamping(model, time_step, None)
@@ -68,7 +71,7 @@ def runSimulation(material_file, mesh_file, paths, args, free_edges=False):
     # Initialize necessary variables and apply the boundary conditions
     print("Simulation starting...")
     nb_inserted, cumulative_work, previous_work = 0, 0, 0
-    apply_bc = True
+    apply_bc = False
     epot_max = -np.inf
 
     for n in range(n_steps):
@@ -135,7 +138,11 @@ if __name__ == "__main__":
     args.time = TIME
 
     # Set mesh file based on --unit flag
-    mesh_file = "plate_0.01x0.01_coarse_P1.msh" if args.unit else args.mesh_file
+    mesh_file = (
+        "hollow_sphere_rin9.0e-01_rout1.0e+00_lc5.0e-02_p1.msh"
+        if args.unit
+        else args.mesh_file
+    )
 
     # Display input file information
     print(f"Material file: {args.material_file}")
