@@ -3,7 +3,7 @@ import numpy as np
 import os
 from helper_functions import *
 
-TIME = 1e-5
+TIME = 4e-6
 
 
 def runSimulation(material_file, mesh_file, paths, args, free_edges=False):
@@ -103,7 +103,7 @@ def runSimulation(material_file, mesh_file, paths, args, free_edges=False):
         )
 
         # Dump the results n_dump times during the simulation for visualization
-        n_dump_paraview = 200  # n_steps
+        n_dump_paraview = 1000  # n_steps
         n_dump_h5 = 1000
 
         if n % (int(n_steps / n_dump_paraview)) == 0:

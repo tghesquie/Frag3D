@@ -4,7 +4,7 @@ material elastic [
     name = linear
     rho = 3900 # Density (kg/m3)
     E = 370e9 # Young's module (Pa)
-    nu = 0. 
+    nu = 0.22 
     finite_deformation = true
 ]
 
@@ -17,5 +17,5 @@ material cohesive_linear [
     contact_after_breaking = false
     penalty = 0
     adaptive_penalty = true
-    stable_damage = 0
+    stable_damage = 1e-1
 ]
