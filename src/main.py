@@ -3,7 +3,7 @@ import numpy as np
 import os
 from helper_functions import *
 
-TIME = 4e-6
+TIME = 3e-6
 
 
 def runSimulation(material_file, mesh_file, paths, args, free_edges=False):

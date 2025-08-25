@@ -16,6 +16,6 @@ material cohesive_linear [
     sigma_c = 0 weibull [2.62e8, 10]
     contact_after_breaking = false
     penalty = 0
-    adaptive_penalty = true
-    stable_damage = 1e-1
+    adaptive_penalty = false
+    stable_damage = 0
 ]
