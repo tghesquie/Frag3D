@@ -575,6 +575,40 @@ def initRadialVelocityField3D(mesh, model, eps_v_dot, center=[0, 0, 0]):
     return alpha
 
 
+def initImpactVelocityField(
+    mesh, model, v0, kappa, center=(0.0, 0.0), z_sign=1.0, cutoff=None
+):
+    """
+    Apply a velocity field in z-direction, whose magnitude follows a Gaussian distribution centered at `center`.
+    """
+    vel = model.getVelocity()
+    nodes = mesh.getNodes()
+
+    lower_bounds = mesh.getLowerBounds()
+    upper_bounds = mesh.getUpperBounds()
+    L = upper_bounds[0] - lower_bounds[0]
+
+    sigma = kappa * L / 2.0
+
+    inv_two_sigma2 = 1.0 / (2.0 * sigma * sigma)
+    cx, cy = center
+
+    for v, x in zip(vel, nodes):
+        dx = x[0] - cx
+        dy = x[1] - cy
+        r2 = dx * dx + dy * dy
+
+        if cutoff is not None and r2 > cutoff * cutoff:
+            vz = 0.0
+        else:
+            vz = z_sign * v0 * np.exp(-r2 * inv_two_sigma2)
+
+        # enforce z-only impact
+        v[0] = 0.0
+        v[1] = 0.0
+        v[2] = vz
+
+
 def computeExternalWorkAKA(model, cumulative_work, previous_work, apply_bc):
 
     if apply_bc:
@@ -1014,6 +1048,13 @@ def parseArguments():
         type=float,
         default=2.559e4,
         help="Strain rate for the simulation.",
+    )
+    parser.add_argument(
+        "--velocity",
+        "-v",
+        type=float,
+        default=10.0,
+        help="Initial velocity for the impact.",
     )
     parser.add_argument(
         "--safety_factor",

@@ -63,7 +63,9 @@ def runSimulation(material_file, mesh_file, paths, args, free_edges=False):
     )
 
     # Initialize the velocity field
-    v = initRadialVelocityField3D(mesh, model, args.strain_rate)
+    v = initImpactVelocityField(
+        mesh, model, args.velocity, 0.5, center=(0.0, 0.0), z_sign=1.0, cutoff=None
+    )
 
     # Get the stable damage and stable stiffness to check the stability of the simulation
     # initUnstableZoneDamping(model, time_step, None)
