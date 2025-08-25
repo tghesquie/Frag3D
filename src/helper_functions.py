@@ -1139,13 +1139,8 @@ def setupDir(nname, args):
             outpath += "/"
 
     else:
-        outpath = "/scratch/ghesquie/run/"
-        outpath += f"strain_rate_{args.strain_rate:.1e}_safety_factor_{args.safety_factor:.1e}_time{args.time:.1e}_1e18"
-        if args.damping_type != None:
-            outpath += f"_dv_{args.damping_type}_{args.energy_reference}"
-            if args.add_previous_weights:
-                outpath += "_apw"
-        outpath += "/"
+        outpath = "/scratch/ghesquie/Frag3D/"
+        outpath += f"impact_vel_{args.velocity:.1e}_safety_factor_{args.safety_factor:.1e}_time{args.time:.1e}/"
 
     # Clear and recreate the output directory
     if os.path.exists(outpath):
