@@ -15,21 +15,24 @@ def runSimulation(material_file, mesh_file, paths, args, free_edges=False):
     spatial_dimension = 3
     mesh = aka.Mesh(spatial_dimension)
     mesh.read(mesh_file)
+    print("Mesh read.")
 
     # Specify and initialize both static and dynamic models
     model = aka.SolidMechanicsModelCohesive(mesh)
-    model.initFull(_analysis_method=aka._static, _is_extrinsic=True)
-    model.initNewSolver(aka._explicit_lumped_mass)
+    model.initFull(_analysis_method=aka._explicit_lumped_mass, _is_extrinsic=True)
+    # model.initNewSolver(aka.)
+    print("Model initialized.")
 
     # Set the cohesive strength of the element facets. This is done for reproducibility and comparison between different simulations with the same material file.
-    try:
-        loadCS(model, material_file, mesh_file, paths[0])
-    except:
-        saveCS(model, material_file, mesh_file, paths[0])
-        loadCS(model, material_file, mesh_file, paths[0])
+    # try:
+    #    loadCS(model, material_file, mesh_file, paths[0])
+    # except:
+    #    saveCS(model, material_file, mesh_file, paths[0])
+    #    loadCS(model, material_file, mesh_file, paths[0])
 
     # Initialize the dumpers
     initParaviewDumpers(model, paths[1])
+    print("Paraview dumpers initialized.")
 
     ## STATIC SOLVE ##
 
@@ -51,6 +54,7 @@ def runSimulation(material_file, mesh_file, paths, args, free_edges=False):
 
     # Initialize the interpolation functions to compute the cohesive stress at facet level
     model.updateAutomaticInsertion()
+    print("Cohesive stress interpolation initialized.")
 
     # Set the time step and compute the number of steps
     # dt_crit, dt_crit_bulk = compute_stable_timestep(model, mesh, penalty)
