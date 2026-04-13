@@ -33,7 +33,7 @@ void initParaviewDumpers(akantu::SolidMechanicsModelCohesive &model,
                          const std::string &outpath);
 
 std::pair<std::string, std::string> setupDir(const std::string &nname,
-                                             const Args &args);
+                                             const Args &args, int prank);
 
 void initImpactVelocityField(
     akantu::Mesh &mesh, akantu::SolidMechanicsModelCohesive &model,
@@ -74,15 +74,17 @@ int main(int argc, char *argv[]) {
   // Only rank 0 prints initialization messages
   if (prank == 0) {
     const std::string host = detect_hostname();
-    std::cout << "Running on host: '" << host << "'\n";
-    std::cout << "Running with " << psize << " MPI processes\n";
-    std::cout << "Reading material from: " << args.material_file << "\n";
+    std::cout << "Running on host: '" << host << "'\n"
+              << "Running with " << psize << " MPI processes\n"
+              << "Reading material from: " << args.material_file << "\n"
+              << std::flush;
   }
 
-  const auto [inpath, outpath] = setupDir(detect_hostname(), args);
+  const auto [inpath, outpath] = setupDir(detect_hostname(), args, prank);
+  comm.barrier(); // ensure dir is created before proceeding
 
   // 2) mesh & model ----------------------------------------------------------
-  const Int dim = 3; // set 2 for planar runs
+  const Int dim = 3;
   Mesh mesh(dim);
 
   // Only rank 0 reads the mesh file
@@ -115,10 +117,10 @@ int main(int argc, char *argv[]) {
   // Adjust kappa/center/cutoff to your case.
   initImpactVelocityField(mesh, model,
                           /*v0=*/args.velocity,
-                          /*kappa=*/0.5,
+                          /*kappa=*/0.4,
                           /*center=*/{0.0, 0.0},
                           /*z_sign=*/+1.0,
-                          /*cutoff=*/4e-3); // std::nullopt);
+                          /*cutoff=*/std::nullopt); // 4e-3);
 
   // 4) time integration setup ------------------------------------------------
   Real dt = model.getStableTimeStep() * args.safety_factor;
@@ -135,7 +137,7 @@ int main(int argc, char *argv[]) {
   Real cumulative_work = 0.0;
 
   // 5) main loop -------------------------------------------------------------
-  const int dump_stride = std::min(n_steps, n_steps / 1000);
+  const int dump_stride = std::min(n_steps, n_steps / 500);
 
   for (int n = 0; n < n_steps; ++n) {
     // Check cohesive stress (parallel operation with ghost synchronization)
@@ -146,7 +148,7 @@ int main(int argc, char *argv[]) {
     // Dump results (parallel I/O)
     if (n % dump_stride == 0) {
       if (prank == 0) {
-        std::cout << "Step " << n << " / " << n_steps << "\n";
+        std::cout << "Step " << n << " / " << n_steps << "\n" << std::flush;
       }
 
       // Each process writes its partition data

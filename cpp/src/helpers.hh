@@ -27,7 +27,7 @@ void initParaviewDumpers(akantu::SolidMechanicsModelCohesive &model,
 /// Prepare IO paths; clears/creates output directory. Returns {inpath,
 /// outpath}.
 std::pair<std::string, std::string> setupDir(const std::string &nname,
-                                             const Args &args);
+                                             const Args &args, int prank);
 
 /// Apply a z-only Gaussian impact velocity field centered at (cx, cy).
 void initImpactVelocityField(

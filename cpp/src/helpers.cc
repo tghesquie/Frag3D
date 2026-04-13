@@ -119,16 +119,18 @@ void initParaviewDumpers(akantu::SolidMechanicsModelCohesive &model,
 /* -------------------------------------------------------------------------- */
 
 std::pair<std::string, std::string> setupDir(const std::string &nname,
-                                             const Args &args) {
+                                             const Args &args, int prank) {
+
   namespace fs = std::filesystem;
 
-  // Like Python: dirname(abspath(__file__)) + "/../"
   const fs::path inpath = fs::absolute(fs::path(__FILE__))
                               .parent_path()
                               .parent_path()
                               .parent_path();
 
-  std::cout << "Input path: " << inpath << "\n";
+  if (prank == 0) {
+    std::cout << "Input path: " << inpath << "\n";
+  }
 
   fs::path outpath;
   if (nname == "lsmspc19") {
@@ -146,20 +148,22 @@ std::pair<std::string, std::string> setupDir(const std::string &nname,
   };
 
   outpath /= ("impact_vel_" + fmt(args.velocity) + "_safety_factor_" +
-              fmt(args.safety_factor) + "_time" + fmt(args.time));
+              fmt(args.safety_factor) + "_time" + fmt(args.time)) +
+             "kappa40";
 
-  try {
-    if (fs::exists(outpath))
-      fs::remove_all(outpath);
-    fs::create_directories(outpath);
-    std::cout << "Created output directory: " << outpath.string() << "\n";
-  } catch (const std::exception &e) {
-    std::cerr << "Error clearing/creating output directory '"
-              << outpath.string() << "': " << e.what() << "\n";
-    std::exit(EXIT_FAILURE);
+  if (prank == 0) {
+    try {
+      if (fs::exists(outpath))
+        fs::remove_all(outpath);
+      fs::create_directories(outpath);
+      std::cout << "Created output directory: " << outpath << "\n";
+    } catch (const std::exception &e) {
+      std::cerr << "Error preparing output directory '" << outpath
+                << "': " << e.what() << "\n";
+      std::exit(EXIT_FAILURE);
+    }
   }
 
-  // Return with trailing separator (handy for concatenation)
   return {(inpath.string() + fs::path::preferred_separator),
           (outpath.string() + fs::path::preferred_separator)};
 }
@@ -232,12 +236,6 @@ void dumpResultsH5(akantu::SolidMechanicsModelCohesive &model, int n,
   const Real work = cumulative_work;
   const Real total_energy = epot + ekin + edis + erev + econ - work;
 
-  // Fragments
-  akantu::FragmentManager fragments(model);
-  fragments.computeAllData();
-
-  const int nb_frag = static_cast<int>(fragments.getNbFragment());
-
   // Mass: [nb_frag x 1] -> 1D
   // const auto &mass = fragments.getMass();
   // std::vector<double> frag_mass;
@@ -258,6 +256,12 @@ void dumpResultsH5(akantu::SolidMechanicsModelCohesive &model, int n,
   Int prank = comm.whoAmI();
 
   if (prank == 0) {
+    // Fragments
+    // akantu::FragmentManager fragments(model);
+    // fragments.computeAllData();
+
+    // const int nb_frag = static_cast<int>(fragments.getNbFragment());
+
     // HDF5 write with small retry (file contention)
     for (int attempt = 0; attempt < 5; ++attempt) {
       hid_t fid = h5util::open_or_create_file(h5_file);
@@ -285,7 +289,7 @@ void dumpResultsH5(akantu::SolidMechanicsModelCohesive &model, int n,
       //                            static_cast<hsize_t>(nb_frag),
       //                            static_cast<hsize_t>(dim));
 
-      h5util::write_attr_int(gid, "nb_fragments", nb_frag);
+      h5util::write_attr_int(gid, "nb_fragments", 0);
       h5util::write_attr_double(gid, "time", static_cast<double>(n * dt));
       h5util::write_attr_double(gid, "epot", static_cast<double>(epot));
       h5util::write_attr_double(gid, "ekin", static_cast<double>(ekin));
